@@ -64,8 +64,8 @@ WeatherWise Native is a premium, aesthetically driven weather application built 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/soham04/sky-hue-native.git
-   cd sky-hue-native
+   git clone https://github.com/soham04/weatherwise.git
+   cd weatherwise
    ```
 
 2. **Install dependencies**
@@ -93,7 +93,7 @@ WeatherWise Native is a premium, aesthetically driven weather application built 
 ## Project Structure
 
 ```
-sky-hue-native/
+weatherwise/
 ├── app/                 # Expo Router app directory
 ├── components/          # Reusable UI components
 │   ├── modals/          # Search, List, Settings modals

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "sky-hue-native",
-    "slug": "sky-hue-native",
+    "name": "WeatherWise",
+    "slug": "weatherwise",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -26,6 +26,18 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "owner": "soham-shinde",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8847eac5-6c2d-4d37-b59e-8567a7b92055"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8847eac5-6c2d-4d37-b59e-8567a7b92055"
     }
   }
 }
