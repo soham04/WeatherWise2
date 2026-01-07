@@ -1,4 +1,4 @@
-# WeatherWise Native
+# WeatherWise
 
 > **Note**: This project is the spiritual successor and technical evolution of [WeatherWise](https://github.com/soham04/WeatherWise). It represents a significant leap forward in architecture, design, and functional depth, built to demonstrate advanced React Native capabilities.
 
