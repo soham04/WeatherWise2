@@ -7,24 +7,37 @@ import {
   StatusBar,
   StyleSheet,
   ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Search, MoreHorizontal, MapPin } from "lucide-react-native";
+import { Search, MoreHorizontal, MapPin, List } from "lucide-react-native";
 import * as Location from "expo-location";
 import CurrentWeather from "./components/weather/CurrentWeather";
 import HourlyForecast from "./components/weather/HourlyForecast";
 import DailyForecast from "./components/weather/DailyForecast";
 import WeatherAlert from "./components/weather/WeatherAlert";
 import WeatherDetailsGrid from "./components/weather/WeatherDetailsGrid";
+import SearchModal from "./components/modals/SearchModal";
+import CityListModal from "./components/modals/CityListModal";
 import { WeatherCondition } from "./components/weather/WeatherIcon";
 import { gradients } from "./styles/gradients";
 import { getAllWeatherData } from "./lib/weatherService";
+import {
+  loadCities,
+  updateCurrentLocationCity,
+  addCity,
+  removeCity,
+  SavedCity,
+  CityWithWeather,
+} from "./lib/storageService";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [weatherData, setWeatherData] = useState<any>(null);
+  const [cities, setCities] = useState<CityWithWeather[]>([]);
   const [currentCityIndex, setCurrentCityIndex] = useState(0);
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [cityListModalVisible, setCityListModalVisible] = useState(false);
 
   useEffect(() => {
     loadWeatherData();
@@ -47,15 +60,107 @@ export default function App() {
       const location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
 
-      // Fetch weather data
-      const data = await getAllWeatherData(latitude, longitude);
-      setWeatherData(data);
+      // Fetch weather data for current location
+      const currentWeatherData = await getAllWeatherData(latitude, longitude);
+
+      // Create current location city
+      const currentLocationCity: CityWithWeather = {
+        id: 'current_location',
+        name: currentWeatherData.current.city,
+        country: '', // We could enhance this with reverse geocoding
+        lat: latitude,
+        lon: longitude,
+        isCurrentLocation: true,
+        temperature: currentWeatherData.current.temperature,
+        condition: currentWeatherData.current.condition,
+        weatherData: currentWeatherData,
+      };
+
+      // Update current location in storage
+      await updateCurrentLocationCity(currentLocationCity);
+
+      // Load saved cities from storage
+      const savedCities = await loadCities();
+
+      // Fetch weather for all saved cities (excluding current location)
+      const citiesWithWeather = await Promise.all(
+        savedCities
+          .filter(city => !city.isCurrentLocation)
+          .map(async (city) => {
+            try {
+              const weatherData = await getAllWeatherData(city.lat, city.lon);
+              return {
+                ...city,
+                temperature: weatherData.current.temperature,
+                condition: weatherData.current.condition,
+                weatherData,
+              };
+            } catch (err) {
+              console.error(`Error fetching weather for ${city.name}:`, err);
+              return city;
+            }
+          })
+      );
+
+      // Combine current location with other cities
+      setCities([currentLocationCity, ...citiesWithWeather]);
       setLoading(false);
     } catch (err) {
       console.error("Error loading weather:", err);
       setError("Failed to load weather data");
       setLoading(false);
     }
+  };
+
+  const handleAddCity = async (city: SavedCity) => {
+    try {
+      // Add city to storage
+      await addCity(city);
+
+      // Fetch weather for the new city
+      const weatherData = await getAllWeatherData(city.lat, city.lon);
+      const cityWithWeather: CityWithWeather = {
+        ...city,
+        temperature: weatherData.current.temperature,
+        condition: weatherData.current.condition,
+        weatherData,
+      };
+
+      // Add to cities list
+      setCities([...cities, cityWithWeather]);
+
+      // Switch to the new city
+      setCurrentCityIndex(cities.length);
+    } catch (err) {
+      console.error('Error adding city:', err);
+    }
+  };
+
+  const handleDeleteCity = async (cityId: string) => {
+    try {
+      // Remove from storage
+      await removeCity(cityId);
+
+      // Find the index of the city to remove
+      const cityIndex = cities.findIndex(c => c.id === cityId);
+
+      // Remove from cities list
+      const updatedCities = cities.filter(c => c.id !== cityId);
+      setCities(updatedCities);
+
+      // Adjust current index if necessary
+      if (currentCityIndex >= updatedCities.length) {
+        setCurrentCityIndex(Math.max(0, updatedCities.length - 1));
+      } else if (currentCityIndex > cityIndex) {
+        setCurrentCityIndex(currentCityIndex - 1);
+      }
+    } catch (err) {
+      console.error('Error removing city:', err);
+    }
+  };
+
+  const handleSelectCity = (index: number) => {
+    setCurrentCityIndex(index);
   };
 
   if (loading) {
@@ -72,7 +177,7 @@ export default function App() {
     );
   }
 
-  if (error || !weatherData) {
+  if (error || cities.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <LinearGradient
@@ -88,23 +193,18 @@ export default function App() {
     );
   }
 
+  // Get current city data
+  const currentCity = cities[currentCityIndex];
+  const weatherData = currentCity?.weatherData;
+
+  if (!weatherData) {
+    return null;
+  }
+
   const currentGradient = gradients[weatherData.current.condition as keyof typeof gradients] || gradients.day;
 
   // Mock alerts (OpenWeather free tier doesn't include alerts)
   const mockAlerts = [] as any[];
-
-  // Create city data structure for page indicator
-  const citiesData = [
-    {
-      id: "current",
-      city: weatherData.current.city,
-      isCurrentLocation: true,
-    },
-  ];
-
-  const goToCity = (index: number) => {
-    setCurrentCityIndex(index);
-  };
 
   return (
     <View style={styles.container}>
@@ -119,11 +219,17 @@ export default function App() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => setSearchModalVisible(true)}
+        >
           <Search size={20} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.headerButton}>
-          <MoreHorizontal size={20} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => setCityListModalVisible(true)}
+        >
+          <List size={20} />
         </TouchableOpacity>
       </View>
 
@@ -143,15 +249,15 @@ export default function App() {
           feelsLike={weatherData.current.feelsLike}
           high={weatherData.current.high}
           low={weatherData.current.low}
-          isCurrentLocation={true}
+          isCurrentLocation={currentCity.isCurrentLocation || false}
         />
 
         {/* Page Indicator */}
         <View style={styles.pageIndicator}>
-          {citiesData.map((city, index) => (
+          {cities.map((city, index) => (
             <TouchableOpacity
               key={city.id}
-              onPress={() => goToCity(index)}
+              onPress={() => handleSelectCity(index)}
               style={styles.dot}
             >
               {city.isCurrentLocation && index === currentCityIndex ? (
@@ -191,6 +297,22 @@ export default function App() {
           <WeatherDetailsGrid details={weatherData.details} />
         </View>
       </ScrollView>
+
+      {/* Modals */}
+      <SearchModal
+        visible={searchModalVisible}
+        onClose={() => setSearchModalVisible(false)}
+        onAddCity={handleAddCity}
+      />
+
+      <CityListModal
+        visible={cityListModalVisible}
+        onClose={() => setCityListModalVisible(false)}
+        cities={cities}
+        currentCityIndex={currentCityIndex}
+        onSelectCity={handleSelectCity}
+        onDeleteCity={handleDeleteCity}
+      />
     </View>
   );
 }
