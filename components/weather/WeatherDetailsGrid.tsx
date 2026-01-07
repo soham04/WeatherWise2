@@ -26,6 +26,7 @@ interface WeatherDetailsData {
 
 interface WeatherDetailsGridProps {
     details: WeatherDetailsData;
+    temperatureUnit: 'F' | 'C';
 }
 
 const DetailCard = ({
@@ -53,7 +54,7 @@ const DetailCard = ({
     </View>
 );
 
-export const WeatherDetailsGrid = ({ details }: WeatherDetailsGridProps) => {
+export const WeatherDetailsGrid = ({ details, temperatureUnit }: WeatherDetailsGridProps) => {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Weather Details</Text>
@@ -96,7 +97,7 @@ export const WeatherDetailsGrid = ({ details }: WeatherDetailsGridProps) => {
                     icon={Droplets}
                     label="Dew Point"
                     value={details.dewPoint}
-                    unit="°"
+                    unit={`°${temperatureUnit}`}
                     color="#60A5FA"
                 />
                 <DetailCard

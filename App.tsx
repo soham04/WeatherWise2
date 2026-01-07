@@ -10,7 +10,7 @@ import {
   FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Search, MoreHorizontal, MapPin, List } from "lucide-react-native";
+import { Search, MoreHorizontal, MapPin, List, Settings } from "lucide-react-native";
 import * as Location from "expo-location";
 import CurrentWeather from "./components/weather/CurrentWeather";
 import HourlyForecast from "./components/weather/HourlyForecast";
@@ -19,6 +19,7 @@ import WeatherAlert from "./components/weather/WeatherAlert";
 import WeatherDetailsGrid from "./components/weather/WeatherDetailsGrid";
 import SearchModal from "./components/modals/SearchModal";
 import CityListModal from "./components/modals/CityListModal";
+import SettingsModal from "./components/modals/SettingsModal";
 import { WeatherCondition } from "./components/weather/WeatherIcon";
 import { gradients } from "./styles/gradients";
 import { getAllWeatherData } from "./lib/weatherService";
@@ -30,6 +31,11 @@ import {
   SavedCity,
   CityWithWeather,
 } from "./lib/storageService";
+import {
+  loadTemperatureUnit,
+  saveTemperatureUnit,
+  TemperatureUnit,
+} from "./lib/preferencesService";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -38,9 +44,12 @@ export default function App() {
   const [currentCityIndex, setCurrentCityIndex] = useState(0);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [cityListModalVisible, setCityListModalVisible] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [temperatureUnit, setTemperatureUnit] = useState<TemperatureUnit>('F');
 
   useEffect(() => {
     loadWeatherData();
+    loadUserPreferences();
   }, []);
 
   const loadWeatherData = async () => {
@@ -61,7 +70,8 @@ export default function App() {
       const { latitude, longitude } = location.coords;
 
       // Fetch weather data for current location
-      const currentWeatherData = await getAllWeatherData(latitude, longitude);
+      const apiUnit = temperatureUnit === 'F' ? 'imperial' : 'metric';
+      const currentWeatherData = await getAllWeatherData(latitude, longitude, apiUnit);
 
       // Create current location city
       const currentLocationCity: CityWithWeather = {
@@ -88,7 +98,8 @@ export default function App() {
           .filter(city => !city.isCurrentLocation)
           .map(async (city) => {
             try {
-              const weatherData = await getAllWeatherData(city.lat, city.lon);
+              const apiUnit = temperatureUnit === 'F' ? 'imperial' : 'metric';
+              const weatherData = await getAllWeatherData(city.lat, city.lon, apiUnit);
               return {
                 ...city,
                 temperature: weatherData.current.temperature,
@@ -112,13 +123,34 @@ export default function App() {
     }
   };
 
+  const loadUserPreferences = async () => {
+    try {
+      const savedUnit = await loadTemperatureUnit();
+      setTemperatureUnit(savedUnit);
+    } catch (err) {
+      console.error('Error loading preferences:', err);
+    }
+  };
+
+  const handleTemperatureUnitChange = async (unit: TemperatureUnit) => {
+    try {
+      await saveTemperatureUnit(unit);
+      setTemperatureUnit(unit);
+      // Reload weather data with new unit
+      await loadWeatherData();
+    } catch (err) {
+      console.error('Error updating temperature unit:', err);
+    }
+  };
+
   const handleAddCity = async (city: SavedCity) => {
     try {
       // Add city to storage
       await addCity(city);
 
       // Fetch weather for the new city
-      const weatherData = await getAllWeatherData(city.lat, city.lon);
+      const apiUnit = temperatureUnit === 'F' ? 'imperial' : 'metric';
+      const weatherData = await getAllWeatherData(city.lat, city.lon, apiUnit);
       const cityWithWeather: CityWithWeather = {
         ...city,
         temperature: weatherData.current.temperature,
@@ -231,6 +263,12 @@ export default function App() {
         >
           <List size={20} />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => setSettingsModalVisible(true)}
+        >
+          <Settings size={20} />
+        </TouchableOpacity>
       </View>
 
       {/* Main Content */}
@@ -250,6 +288,7 @@ export default function App() {
           high={weatherData.current.high}
           low={weatherData.current.low}
           isCurrentLocation={currentCity.isCurrentLocation || false}
+          temperatureUnit={temperatureUnit}
         />
 
         {/* Page Indicator */}
@@ -278,7 +317,7 @@ export default function App() {
 
         {/* Hourly Forecast */}
         <View style={styles.section}>
-          <HourlyForecast hours={weatherData.hourly} />
+          <HourlyForecast hours={weatherData.hourly} temperatureUnit={temperatureUnit} />
         </View>
 
         {/* Daily Forecast */}
@@ -289,12 +328,13 @@ export default function App() {
               min: Math.min(...weatherData.daily.map((d: any) => d.low)),
               max: Math.max(...weatherData.daily.map((d: any) => d.high))
             }}
+            temperatureUnit={temperatureUnit}
           />
         </View>
 
         {/* Weather Details Grid */}
         <View style={styles.lastSection}>
-          <WeatherDetailsGrid details={weatherData.details} />
+          <WeatherDetailsGrid details={weatherData.details} temperatureUnit={temperatureUnit} />
         </View>
       </ScrollView>
 
@@ -312,6 +352,13 @@ export default function App() {
         currentCityIndex={currentCityIndex}
         onSelectCity={handleSelectCity}
         onDeleteCity={handleDeleteCity}
+      />
+
+      <SettingsModal
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
+        temperatureUnit={temperatureUnit}
+        onTemperatureUnitChange={handleTemperatureUnitChange}
       />
     </View>
   );

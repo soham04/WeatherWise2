@@ -13,9 +13,10 @@ interface HourData {
 
 interface HourlyForecastProps {
     hours: HourData[];
+    temperatureUnit: 'F' | 'C';
 }
 
-export const HourlyForecast = ({ hours }: HourlyForecastProps) => {
+export const HourlyForecast = ({ hours, temperatureUnit }: HourlyForecastProps) => {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Hourly Forecast</Text>
@@ -27,7 +28,7 @@ export const HourlyForecast = ({ hours }: HourlyForecastProps) => {
             >
                 {hours.map((hour, index) => (
                     <View
-                        key={hour.time}
+                        key={`${hour.time}-${index}`}
                         style={[
                             styles.hourCard,
                             hour.isNow && styles.hourCardCurrent
@@ -60,7 +61,7 @@ export const HourlyForecast = ({ hours }: HourlyForecastProps) => {
                             styles.temperature,
                             hour.isNow && styles.temperatureCurrent
                         ]}>
-                            {hour.temperature}°
+                            {hour.temperature}°{temperatureUnit}
                         </Text>
                     </View>
                 ))}

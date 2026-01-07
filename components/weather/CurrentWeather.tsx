@@ -14,6 +14,7 @@ interface CurrentWeatherProps {
     high: number;
     low: number;
     isCurrentLocation?: boolean;
+    temperatureUnit: 'F' | 'C';
 }
 
 export type { CurrentWeatherProps };
@@ -29,6 +30,7 @@ export const CurrentWeather = ({
     high,
     low,
     isCurrentLocation = false,
+    temperatureUnit,
 }: CurrentWeatherProps) => {
     return (
         <View style={styles.container}>
@@ -60,10 +62,10 @@ export const CurrentWeather = ({
             {/* High/Low & Feels Like */}
             <View style={styles.detailsContainer}>
                 <Text style={styles.detailText}>
-                    H:{high}° L:{low}°
+                    H:{high}°{temperatureUnit} L:{low}°{temperatureUnit}
                 </Text>
                 <View style={styles.dot} />
-                <Text style={styles.detailText}>Feels like {feelsLike}°</Text>
+                <Text style={styles.detailText}>Feels like {feelsLike}°{temperatureUnit}</Text>
             </View>
         </View>
     );

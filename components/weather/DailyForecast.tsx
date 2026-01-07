@@ -17,9 +17,10 @@ interface DayData {
 interface DailyForecastProps {
     days: DayData[];
     tempRange: { min: number; max: number };
+    temperatureUnit: 'F' | 'C';
 }
 
-export const DailyForecast = ({ days, tempRange }: DailyForecastProps) => {
+export const DailyForecast = ({ days, tempRange, temperatureUnit }: DailyForecastProps) => {
     const getTempPosition = (temp: number) => {
         const range = tempRange.max - tempRange.min;
         return ((temp - tempRange.min) / range) * 100;
@@ -31,7 +32,7 @@ export const DailyForecast = ({ days, tempRange }: DailyForecastProps) => {
 
             <View>
                 {days.map((day, index) => (
-                    <View key={day.date}>
+                    <View key={`${day.date}-${index}`}>
                         {index > 0 && <View style={styles.separator} />}
                         <View style={styles.dayRow}>
                             {/* Day */}
@@ -63,7 +64,7 @@ export const DailyForecast = ({ days, tempRange }: DailyForecastProps) => {
                             </View>
 
                             {/* Low Temp */}
-                            <Text style={styles.lowTemp}>{day.low}°</Text>
+                            <Text style={styles.lowTemp}>{day.low}°{temperatureUnit}</Text>
 
                             {/* Temperature Bar */}
                             <View style={styles.tempBar}>
@@ -96,7 +97,7 @@ export const DailyForecast = ({ days, tempRange }: DailyForecastProps) => {
                             </View>
 
                             {/* High Temp */}
-                            <Text style={styles.highTemp}>{day.high}°</Text>
+                            <Text style={styles.highTemp}>{day.high}°{temperatureUnit}</Text>
                         </View>
                     </View>
                 ))}

@@ -106,11 +106,11 @@ function formatDate(timestamp: number, timezone: number): string {
   const date = new Date((timestamp + timezone) * 1000);
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  
+
   const dayName = days[date.getUTCDay()];
   const monthName = months[date.getUTCMonth()];
   const day = date.getUTCDate();
-  
+
   return `${dayName}, ${monthName} ${day}`;
 }
 
@@ -130,20 +130,20 @@ function getShortDate(timestamp: number, timezone: number): string {
 }
 
 // Fetch current weather data
-export async function getCurrentWeather(lat: number, lon: number) {
+export async function getCurrentWeather(lat: number, lon: number, unit: 'imperial' | 'metric' = 'imperial') {
   try {
     const response = await fetch(
-      `${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=imperial`
+      `${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=${unit}`
     );
-    
+
     if (!response.ok) {
       throw new Error(`Weather API error: ${response.status}`);
     }
-    
+
     const data: OpenWeatherCurrent = await response.json();
-    
+
     const condition = mapWeatherCondition(data.weather[0].id, data.weather[0].icon);
-    
+
     return {
       city: data.name,
       time: formatTime(data.dt, data.timezone),
@@ -172,25 +172,25 @@ export async function getCurrentWeather(lat: number, lon: number) {
 }
 
 // Fetch hourly forecast (from 5-day/3-hour forecast)
-export async function getHourlyForecast(lat: number, lon: number) {
+export async function getHourlyForecast(lat: number, lon: number, unit: 'imperial' | 'metric' = 'imperial') {
   try {
     const response = await fetch(
-      `${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=imperial`
+      `${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=${unit}`
     );
-    
+
     if (!response.ok) {
       throw new Error(`Forecast API error: ${response.status}`);
     }
-    
+
     const data: OpenWeatherForecast = await response.json();
-    
+
     // Take first 9 items (next 24-27 hours in 3-hour intervals)
     const hourlyData = data.list.slice(0, 9).map((item, index) => {
       const date = new Date(item.dt * 1000);
       let hours = date.getHours();
       const ampm = hours >= 12 ? "PM" : "AM";
       hours = hours % 12 || 12;
-      
+
       return {
         time: index === 0 ? "Now" : `${hours} ${ampm}`,
         temperature: Math.round(item.main.temp),
@@ -199,7 +199,7 @@ export async function getHourlyForecast(lat: number, lon: number) {
         isNow: index === 0,
       };
     });
-    
+
     return hourlyData;
   } catch (error) {
     console.error("Error fetching hourly forecast:", error);
@@ -208,31 +208,31 @@ export async function getHourlyForecast(lat: number, lon: number) {
 }
 
 // Fetch daily forecast (aggregate from 5-day/3-hour forecast)
-export async function getDailyForecast(lat: number, lon: number) {
+export async function getDailyForecast(lat: number, lon: number, unit: 'imperial' | 'metric' = 'imperial') {
   try {
     const response = await fetch(
-      `${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=imperial`
+      `${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=${unit}`
     );
-    
+
     if (!response.ok) {
       throw new Error(`Forecast API error: ${response.status}`);
     }
-    
+
     const data: OpenWeatherForecast = await response.json();
-    
+
     // Group by date
     const dailyMap = new Map<string, ForecastItem[]>();
-    
+
     data.list.forEach((item) => {
       const date = new Date(item.dt * 1000);
       const dateKey = date.toISOString().split("T")[0];
-      
+
       if (!dailyMap.has(dateKey)) {
         dailyMap.set(dateKey, []);
       }
       dailyMap.get(dateKey)!.push(item);
     });
-    
+
     // Convert to daily forecast (take up to 7 days)
     const dailyForecasts = Array.from(dailyMap.entries())
       .slice(0, 7)
@@ -241,20 +241,20 @@ export async function getDailyForecast(lat: number, lon: number) {
         const temps = items.map((i) => i.main.temp);
         const high = Math.round(Math.max(...temps));
         const low = Math.round(Math.min(...temps));
-        
+
         // Use midday forecast for condition (around 12pm)
         const middayItem = items.find((i) => {
           const hour = new Date(i.dt * 1000).getHours();
           return hour >= 12 && hour <= 15;
         }) || items[0];
-        
+
         // Average precipitation probability
         const avgPrecip = Math.round(
           items.reduce((sum, i) => sum + i.pop, 0) / items.length * 100
         );
-        
+
         const firstItem = items[0];
-        
+
         return {
           day: getShortDay(firstItem.dt, data.city.timezone, index === 0),
           date: getShortDate(firstItem.dt, data.city.timezone),
@@ -265,7 +265,7 @@ export async function getDailyForecast(lat: number, lon: number) {
           isToday: index === 0,
         };
       });
-    
+
     return dailyForecasts;
   } catch (error) {
     console.error("Error fetching daily forecast:", error);
@@ -291,14 +291,14 @@ function getMoonPhase(): string {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
-  
+
   // Simplified moon phase calculation
   const c = Math.floor((year - 1900) / 100);
   const e = 2 - c + Math.floor(c / 4);
   const jd = Math.floor(365.25 * (year + 4716)) +
-            Math.floor(30.6001 * (month + 1)) + day + e - 1524.5;
+    Math.floor(30.6001 * (month + 1)) + day + e - 1524.5;
   const daysSinceNew = (jd - 2451549.5) % 29.53;
-  
+
   if (daysSinceNew < 1.8) return "New Moon";
   if (daysSinceNew < 7.4) return "Waxing Crescent";
   if (daysSinceNew < 9.1) return "First Quarter";
@@ -310,14 +310,14 @@ function getMoonPhase(): string {
 }
 
 // Get all weather data at once
-export async function getAllWeatherData(lat: number, lon: number) {
+export async function getAllWeatherData(lat: number, lon: number, unit: 'imperial' | 'metric' = 'imperial') {
   try {
     const [current, hourly, daily] = await Promise.all([
-      getCurrentWeather(lat, lon),
-      getHourlyForecast(lat, lon),
-      getDailyForecast(lat, lon),
+      getCurrentWeather(lat, lon, unit),
+      getHourlyForecast(lat, lon, unit),
+      getDailyForecast(lat, lon, unit),
     ]);
-    
+
     return {
       current,
       hourly,
