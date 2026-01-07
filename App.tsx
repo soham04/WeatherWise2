@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,11 +12,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Search, MoreHorizontal, MapPin, List, Settings } from "lucide-react-native";
 import * as Location from "expo-location";
-import CurrentWeather from "./components/weather/CurrentWeather";
-import HourlyForecast from "./components/weather/HourlyForecast";
-import DailyForecast from "./components/weather/DailyForecast";
-import WeatherAlert from "./components/weather/WeatherAlert";
-import WeatherDetailsGrid from "./components/weather/WeatherDetailsGrid";
+import CityWeatherView from "./components/weather/CityWeatherView";
 import SearchModal from "./components/modals/SearchModal";
 import CityListModal from "./components/modals/CityListModal";
 import SettingsModal from "./components/modals/SettingsModal";
@@ -191,8 +187,11 @@ export default function App() {
     }
   };
 
+  const flatListRef = useRef<FlatList>(null);
+
   const handleSelectCity = (index: number) => {
     setCurrentCityIndex(index);
+    flatListRef.current?.scrollToIndex({ index, animated: true });
   };
 
   if (loading) {
@@ -272,71 +271,62 @@ export default function App() {
       </View>
 
       {/* Main Content */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Current Weather */}
-        <CurrentWeather
-          city={weatherData.current.city}
-          time={weatherData.current.time}
-          date={weatherData.current.date}
-          temperature={weatherData.current.temperature}
-          condition={weatherData.current.condition}
-          conditionText={weatherData.current.conditionText}
-          feelsLike={weatherData.current.feelsLike}
-          high={weatherData.current.high}
-          low={weatherData.current.low}
-          isCurrentLocation={currentCity.isCurrentLocation || false}
-          temperatureUnit={temperatureUnit}
-        />
-
-        {/* Page Indicator */}
-        <View style={styles.pageIndicator}>
-          {cities.map((city, index) => (
-            <TouchableOpacity
-              key={city.id}
-              onPress={() => handleSelectCity(index)}
-              style={styles.dot}
-            >
-              {city.isCurrentLocation && index === currentCityIndex ? (
-                <View style={styles.activeDotWithPin}>
-                  <MapPin size={6} />
+      <FlatList
+        data={cities}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={{ width: require('react-native').Dimensions.get('window').width }}>
+            <CityWeatherView
+              city={item}
+              temperatureUnit={temperatureUnit}
+              mockAlerts={mockAlerts}
+              renderPageIndicator={() => (
+                <View style={styles.pageIndicator}>
+                  {cities.map((city, index) => (
+                    <TouchableOpacity
+                      key={city.id}
+                      onPress={() => handleSelectCity(index)}
+                      style={styles.dot}
+                    >
+                      {city.isCurrentLocation && index === currentCityIndex ? (
+                        <View style={styles.activeDotWithPin}>
+                          <MapPin size={6} />
+                        </View>
+                      ) : index === currentCityIndex ? (
+                        <View style={styles.activeDot} />
+                      ) : (
+                        <View style={styles.inactiveDot} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              ) : index === currentCityIndex ? (
-                <View style={styles.activeDot} />
-              ) : (
-                <View style={styles.inactiveDot} />
               )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Weather Alerts */}
-        <WeatherAlert alerts={mockAlerts} />
-
-        {/* Hourly Forecast */}
-        <View style={styles.section}>
-          <HourlyForecast hours={weatherData.hourly} temperatureUnit={temperatureUnit} />
-        </View>
-
-        {/* Daily Forecast */}
-        <View style={styles.section}>
-          <DailyForecast
-            days={weatherData.daily}
-            tempRange={{
-              min: Math.min(...weatherData.daily.map((d: any) => d.low)),
-              max: Math.max(...weatherData.daily.map((d: any) => d.high))
-            }}
-            temperatureUnit={temperatureUnit}
-          />
-        </View>
-
-        {/* Weather Details Grid */}
-        <View style={styles.lastSection}>
-          <WeatherDetailsGrid details={weatherData.details} temperatureUnit={temperatureUnit} />
-        </View>
-      </ScrollView>
+            />
+          </View>
+        )}
+        onMomentumScrollEnd={(e) => {
+          const contentOffset = e.nativeEvent.contentOffset.x;
+          const viewSize = e.nativeEvent.layoutMeasurement.width;
+          const index = Math.round(contentOffset / viewSize);
+          if (index !== currentCityIndex) {
+            setCurrentCityIndex(index);
+          }
+        }}
+        initialScrollIndex={currentCityIndex}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise(resolve => setTimeout(resolve, 500));
+          wait.then(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: false });
+          });
+        }}
+        ref={flatListRef}
+        getItemLayout={(data, index) => (
+          { length: require('react-native').Dimensions.get('window').width, offset: require('react-native').Dimensions.get('window').width * index, index }
+        )}
+      />
 
       {/* Modals */}
       <SearchModal
@@ -412,15 +402,11 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
-  scrollContent: {
-    paddingBottom: 40,
-  },
   pageIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 16,
   },
   dot: {
     padding: 4,
@@ -444,11 +430,5 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  lastSection: {
-    marginBottom: 32,
   },
 });
