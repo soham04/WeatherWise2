@@ -1,142 +1,118 @@
-# Sky Hue - React Native Weather App
+# WeatherWise Native
 
-A beautiful weather application built with React Native and Expo, converted from the original React web app.
+> **Note**: This project is the spiritual successor and technical evolution of [WeatherWise](https://github.com/soham04/WeatherWise). It represents a significant leap forward in architecture, design, and functional depth, built to demonstrate advanced React Native capabilities.
+
+WeatherWise Native is a premium, aesthetically driven weather application built with **React Native** and **Expo**. It combines real-time weather precision with a dynamic, immersive UI that adapts its color palette to the current sky conditions.
+
+> **Cross-Platform**: Designed and optimized to run flawlessly on **iOS**, **Android**, and **Web**.
 
 ## Features
 
-- 🌤️ **Beautiful Weather Display** - Stunning gradient backgrounds that change based on weather conditions
-- 📍 **Multiple Locations** - Swipe between different cities to view their weather
-- ⏰ **Hourly & Daily Forecasts** - Detailed weather predictions
-- 🎨 **Smooth Animations** - Powered by React Native Reanimated
-- 📱 **Native Performance** - Built with Expo for iOS and Android
+### Core Functionality
+- **Real-Time Weather**: Accurate current alerts and conditions using the OpenWeatherMap API.
+- **Global Reach**: Search, add, and manage weather for unlimited cities worldwide.
+- **Smart Formatting**: Displays time, date, and forecast details in the local timezone of the selected city.
+- **Detailed Forecasts**:
+  - 24-hour hourly breakdown with precipitation probability.
+  - 7-day daily forecast with high/low temperature ranges.
+- **Rich Metrics**: Humidity, Wind Speed/Direction, Visibility, Pressure, and Sunrise/Sunset times.
 
-## Technology Stack
+### User Experience
+- **Dynamic Gradients**: The entire app background shifts fluidly between custom-curated gradients (e.g., `sunny`, `stormy`, `night-clear`) based on the live weather data.
+- **Interactive UI**:
+  - Horizontal paging between saved cities with a custom indicator.
+  - Smooth modal transitions for search and settings.
+  - "Pull to Refresh" functionality implies seamless data updates.
+- **Preferences**:
+  - Toggle between **Celsius** and **Fahrenheit** instantly.
+  - Persistent storage of user preferences and city list.
 
-- **React Native** - Cross-platform mobile framework
-- **Expo** - Development platform
-- **TypeScript** - Type safety
-- **NativeWind** - Tailwind CSS for React Native
-- **React Native Reanimated** - High-performance animations
-- **React Native Gesture Handler** - Touch gestures
-- **Expo Linear Gradient** - Beautiful gradient backgrounds
-- **Lucide React Native** - Icon library
-- **React Query** - Data fetching and caching
+### Technical Highlights (Upgrade from WeatherWise)
+- **Robust State Management**: Migrated to **TanStack Query** (React Query) for efficient caching, background updates, and optimistic UI.
+- **Type Safety**: Fully typed codebase using **TypeScript**, ensuring reliability and easier maintenance compared to the original JavaScript implementation.
+- **Modern Styling**: Utilizes **NativeWind (Tailwind CSS)** for performant, utility-first styling that keeps the codebase clean.
+- **Clean Architecture**: Separation of concerns with dedicated service layers (`weatherService`, `storageService`) and reusable components.
 
-## Getting Started
+---
 
-### Prerequisites
+## Tech Stack
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Expo CLI
-- iOS Simulator (Mac only) or Android Emulator
+| Category | Technology |
+|----------|------------|
+| **Framework** | [React Native](https://reactnative.dev/) / [Expo SDK 50+](https://expo.dev/) |
+| **Language** | [TypeScript](https://www.typescriptlang.org/) |
+| **State/Data** | [TanStack Query](https://tanstack.com/query/latest) |
+| **Styling** | [NativeWind](https://www.nativewind.dev/) (Tailwind CSS) |
+| **Navigation** | [Expo Router](https://docs.expo.dev/router/introduction/) |
+| **Icons** | [Lucide React Native](https://lucide.dev/) |
+| **Storage** | [AsyncStorage](https://react-native-async-storage.github.io/async-storage/) |
+| **API** | [OpenWeatherMap](https://openweathermap.org/api) |
 
-### Installation
+---
 
-1. Navigate to the project directory:
-```bash
-cd sky-hue-native
-```
+## Screenshots
 
-2. Install dependencies:
-```bash
-npm install
-```
+<div align="center">
+  <img src="./assets/screenshot-1.jpeg" width="250" />
+  <img src="./assets/screenshot-2.jpeg" width="250" />
+  <img src="./assets/screenshot-3.jpeg" width="250" />
+</div>
 
-3. Start the development server:
-```bash
-npm start
-```
+---
 
-4. Run on your preferred platform:
-```bash
-# iOS
-npm run ios
+## Installation & Setup
 
-# Android
-npm run android
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/soham04/sky-hue-native.git
+   cd sky-hue-native
+   ```
 
-# Web (for testing)
-npm run web
-```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**
+   This project uses `OpenWeatherMap`. The API key is currently configured in `lib/weatherService.ts`. For production, ensure this is moved to a `.env` file.
+
+4. **Run the App**
+   Start the Expo development server:
+   ```bash
+   npm start
+   ```
+
+5. **Launch on Device**
+   - **iOS**: Press `i` to open in iOS Simulator.
+   - **Android**: Press `a` to open in Android Emulator.
+   - **Web**: Press `w` to open in the Browser.
+   - **Physical Device**: Scan the QR code with the Expo Go app.
+
+---
 
 ## Project Structure
 
 ```
 sky-hue-native/
-├── components/
-│   ├── weather/          # Weather-specific components
-│   │   ├── WeatherIcon.tsx
-│   │   ├── CurrentWeather.tsx
-│   │   ├── HourlyForecast.tsx
-│   │   ├── DailyForecast.tsx
-│   │   ├── WeatherAlert.tsx
-│   │   └── WeatherDetailsGrid.tsx
-│   └── ui/               # Reusable UI components
-├── lib/                  # Utility functions
-├── styles/               # Style configurations
-│   └── gradients.ts      # Weather gradient definitions
-├── App.tsx               # Main application component
-├── global.css            # Global Tailwind styles
-└── tailwind.config.js    # Tailwind configuration
+├── app/                 # Expo Router app directory
+├── components/          # Reusable UI components
+│   ├── modals/          # Search, List, Settings modals
+│   ├── weather/         # Weather-specific views (CityWeatherView, etc.)
+│   └── ui/              # Generic UI elements
+├── lib/                 # Business logic & services
+│   ├── weatherService.ts  # API integration
+│   ├── storageService.ts  # Local persistence
+│   └── preferencesService.ts
+├── styles/              # Global styles & theme configuration
+└── assets/              # Static assets (images, fonts)
 ```
 
-## Features in Detail
+---
 
-### Swipe Navigation
-Swipe left or right to navigate between different cities and their weather conditions.
+## Contributing
 
-### Dynamic Backgrounds
-Background gradients automatically change based on the current weather condition:
-- ☀️ Sunny - Bright blue gradient
-- 🌙 Night - Dark blue gradient
-- ☁️ Cloudy - Gray gradient
-- 🌧️ Rainy - Deep blue gradient
-
-### Weather Components
-- **Current Weather** - Large display of current temperature and conditions
-- **Hourly Forecast** - Horizontal scroll of upcoming hours
-- **Daily Forecast** - 10-day forecast with temperature ranges
-- **Weather Alerts** - Important weather warnings
-- **Weather Details** - Humidity, wind, UV index, visibility, pressure, and more
-
-## Conversion Notes
-
-This React Native app was converted from the original React web application with the following changes:
-
-- **Framer Motion → React Native Reanimated** - All animations converted to native animations
-- **HTML/CSS → React Native Components** - All web components converted to native equivalents
-- **Tailwind CSS → NativeWind** - Styling approach maintained with NativeWind
-- **React Router → Gesture Handler** - Navigation implemented with swipe gestures
-
-## Development
-
-### Adding New Cities
-Edit the `citiesData` array in `App.tsx` to add more cities.
-
-### Customizing Gradients
-Modify `styles/gradients.ts` to change the background gradients for different weather conditions.
-
-### Adding Weather Conditions
-Update the `WeatherCondition` type in `components/weather/WeatherIcon.tsx` and add corresponding icons.
-
-## Building for Production
-
-```bash
-# Build for iOS
-npm run build:ios
-
-# Build for Android
-npm run build:android
-```
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is part of the Sky Hue weather app family.
-
-## Acknowledgments
-
-- Original React web app design
-- Expo team for the amazing development platform
-- NativeWind for bringing Tailwind to React Native
-- Lucide for beautiful icons
+This project is licensed under the MIT License.
