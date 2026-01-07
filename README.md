@@ -2,7 +2,9 @@
 
 > **Note**: This project is the spiritual successor and technical evolution of [WeatherWise](https://github.com/soham04/WeatherWise). It represents a significant leap forward in architecture, design, and functional depth, built to demonstrate advanced React Native capabilities.
 
-WeatherWise Native is a premium, aesthetically driven weather application built with **React Native** and **Expo**. It combines real-time weather precision with a dynamic, immersive UI that adapts its color palette to the current sky conditions.
+**WeatherWise** is a next-generation weather experience designed for those who appreciate aesthetics as much as accuracy.
+
+Built with **React Native** and **Expo**, it transforms mundane weather checking into a visual delight. The interface feels alive, shifting its entire color palette and mood to match the sky outside—from the golden hues of sunrise to the deep indigos of a storm. It's not just a weather app; it's a reflection of the world around you.
 
 > **Cross-Platform**: Designed and optimized to run flawlessly on **iOS**, **Android**, and **Web**.
 
@@ -51,6 +53,11 @@ WeatherWise Native is a premium, aesthetically driven weather application built 
 ---
 
 ## Screenshots
+
+<div align="center">
+  <img src="./assets/preview.png" width="300" alt="Expo Preview" />
+  <p><em>Scan/Click to Preview in Expo Go</em></p>
+</div>
 
 <div align="center">
   <img src="./assets/screenshot-1.jpeg" width="250" />
