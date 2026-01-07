@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,11 @@ import {
   TouchableOpacity,
   StatusBar,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Search, MoreHorizontal, MapPin } from "lucide-react-native";
+import * as Location from "expo-location";
 import CurrentWeather from "./components/weather/CurrentWeather";
 import HourlyForecast from "./components/weather/HourlyForecast";
 import DailyForecast from "./components/weather/DailyForecast";
@@ -16,104 +18,89 @@ import WeatherAlert from "./components/weather/WeatherAlert";
 import WeatherDetailsGrid from "./components/weather/WeatherDetailsGrid";
 import { WeatherCondition } from "./components/weather/WeatherIcon";
 import { gradients } from "./styles/gradients";
-
-// Mock data
-const mockHourlyData = [
-  { time: "Now", temperature: 72, condition: "sunny" as WeatherCondition, precipitation: 0, isNow: true },
-  { time: "1 PM", temperature: 74, condition: "sunny" as WeatherCondition, precipitation: 0 },
-  { time: "2 PM", temperature: 75, condition: "sunny" as WeatherCondition, precipitation: 0 },
-  { time: "3 PM", temperature: 76, condition: "partly-cloudy" as WeatherCondition, precipitation: 10 },
-  { time: "4 PM", temperature: 75, condition: "partly-cloudy" as WeatherCondition, precipitation: 20 },
-  { time: "5 PM", temperature: 73, condition: "cloudy" as WeatherCondition, precipitation: 30 },
-  { time: "6 PM", temperature: 71, condition: "cloudy" as WeatherCondition, precipitation: 40 },
-  { time: "7 PM", temperature: 68, condition: "drizzle" as WeatherCondition, precipitation: 60 },
-  { time: "8 PM", temperature: 66, condition: "rainy" as WeatherCondition, precipitation: 80 },
-];
-
-const mockDailyData = [
-  { day: "Today", date: "Jan 7", condition: "sunny" as WeatherCondition, precipitation: 0, high: 76, low: 58, isToday: true },
-  { day: "Wed", date: "Jan 8", condition: "partly-cloudy" as WeatherCondition, precipitation: 20, high: 74, low: 56 },
-  { day: "Thu", date: "Jan 9", condition: "rainy" as WeatherCondition, precipitation: 80, high: 68, low: 54 },
-  { day: "Fri", date: "Jan 10", condition: "stormy" as WeatherCondition, precipitation: 90, high: 62, low: 52 },
-  { day: "Sat", date: "Jan 11", condition: "cloudy" as WeatherCondition, precipitation: 40, high: 65, low: 50 },
-  { day: "Sun", date: "Jan 12", condition: "partly-cloudy" as WeatherCondition, precipitation: 20, high: 70, low: 52 },
-  { day: "Mon", date: "Jan 13", condition: "sunny" as WeatherCondition, precipitation: 0, high: 75, low: 55 },
-];
-
-const mockWeatherDetails = {
-  humidity: 62,
-  windSpeed: 12,
-  windDirection: "NW",
-  uvIndex: 6,
-  visibility: 10,
-  pressure: 1015,
-  pressureTrend: "rising" as const,
-  dewPoint: 58,
-  sunrise: "6:52 AM",
-  sunset: "5:18 PM",
-  moonPhase: "Waning Gibbous",
-};
-
-const mockAlerts = [
-  {
-    id: "1",
-    type: "watch" as const,
-    title: "Thunderstorm Watch",
-    description: "A thunderstorm watch is in effect from 7 PM to midnight. Stay weather-aware.",
-    time: "Until 12:00 AM",
-  },
-];
-
-const citiesData = [
-  {
-    id: "current",
-    city: "San Francisco",
-    time: "12:34 PM",
-    date: "Tuesday, January 7",
-    temperature: 72,
-    condition: "sunny" as WeatherCondition,
-    conditionText: "Sunny",
-    feelsLike: 74,
-    high: 76,
-    low: 58,
-    isCurrentLocation: true,
-    gradient: "day",
-  },
-  {
-    id: "1",
-    city: "New York",
-    time: "3:34 PM",
-    date: "Tuesday, January 7",
-    temperature: 45,
-    condition: "cloudy" as WeatherCondition,
-    conditionText: "Cloudy",
-    feelsLike: 42,
-    high: 48,
-    low: 38,
-    isCurrentLocation: false,
-    gradient: "cloudy",
-  },
-  {
-    id: "2",
-    city: "London",
-    time: "8:34 PM",
-    date: "Tuesday, January 7",
-    temperature: 52,
-    condition: "rainy" as WeatherCondition,
-    conditionText: "Light Rain",
-    feelsLike: 48,
-    high: 54,
-    low: 46,
-    isCurrentLocation: false,
-    gradient: "rainy",
-  },
-];
+import { getAllWeatherData } from "./lib/weatherService";
 
 export default function App() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [weatherData, setWeatherData] = useState<any>(null);
   const [currentCityIndex, setCurrentCityIndex] = useState(0);
 
-  const currentCity = citiesData[currentCityIndex];
-  const currentGradient = gradients[currentCity.gradient as keyof typeof gradients] || gradients.day;
+  useEffect(() => {
+    loadWeatherData();
+  }, []);
+
+  const loadWeatherData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Request location permissions
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setError("Location permission denied");
+        setLoading(false);
+        return;
+      }
+
+      // Get current location
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      // Fetch weather data
+      const data = await getAllWeatherData(latitude, longitude);
+      setWeatherData(data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error loading weather:", err);
+      setError("Failed to load weather data");
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <LinearGradient
+          colors={gradients.day.colors as any}
+          locations={gradients.day.locations as any}
+          style={StyleSheet.absoluteFill}
+        />
+        <ActivityIndicator size="large" color="white" />
+        <Text style={styles.loadingText}>Loading weather...</Text>
+      </View>
+    );
+  }
+
+  if (error || !weatherData) {
+    return (
+      <View style={styles.centerContainer}>
+        <LinearGradient
+          colors={gradients.day.colors as any}
+          locations={gradients.day.locations as any}
+          style={StyleSheet.absoluteFill}
+        />
+        <Text style={styles.errorText}>{error || "No weather data available"}</Text>
+        <TouchableOpacity onPress={loadWeatherData} style={styles.retryButton}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const currentGradient = gradients[weatherData.current.condition as keyof typeof gradients] || gradients.day;
+
+  // Mock alerts (OpenWeather free tier doesn't include alerts)
+  const mockAlerts = [] as any[];
+
+  // Create city data structure for page indicator
+  const citiesData = [
+    {
+      id: "current",
+      city: weatherData.current.city,
+      isCurrentLocation: true,
+    },
+  ];
 
   const goToCity = (index: number) => {
     setCurrentCityIndex(index);
@@ -133,10 +120,10 @@ export default function App() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerButton}>
-          <Search size={20} color="white" />
+          <Search size={20} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.headerButton}>
-          <MoreHorizontal size={20} color="white" />
+          <MoreHorizontal size={20} />
         </TouchableOpacity>
       </View>
 
@@ -147,16 +134,16 @@ export default function App() {
       >
         {/* Current Weather */}
         <CurrentWeather
-          city={currentCity.city}
-          time={currentCity.time}
-          date={currentCity.date}
-          temperature={currentCity.temperature}
-          condition={currentCity.condition}
-          conditionText={currentCity.conditionText}
-          feelsLike={currentCity.feelsLike}
-          high={currentCity.high}
-          low={currentCity.low}
-          isCurrentLocation={currentCity.isCurrentLocation}
+          city={weatherData.current.city}
+          time={weatherData.current.time}
+          date={weatherData.current.date}
+          temperature={weatherData.current.temperature}
+          condition={weatherData.current.condition}
+          conditionText={weatherData.current.conditionText}
+          feelsLike={weatherData.current.feelsLike}
+          high={weatherData.current.high}
+          low={weatherData.current.low}
+          isCurrentLocation={true}
         />
 
         {/* Page Indicator */}
@@ -169,7 +156,7 @@ export default function App() {
             >
               {city.isCurrentLocation && index === currentCityIndex ? (
                 <View style={styles.activeDotWithPin}>
-                  <MapPin size={6} color="#000" />
+                  <MapPin size={6} />
                 </View>
               ) : index === currentCityIndex ? (
                 <View style={styles.activeDot} />
@@ -185,17 +172,23 @@ export default function App() {
 
         {/* Hourly Forecast */}
         <View style={styles.section}>
-          <HourlyForecast hours={mockHourlyData} />
+          <HourlyForecast hours={weatherData.hourly} />
         </View>
 
         {/* Daily Forecast */}
         <View style={styles.section}>
-          <DailyForecast days={mockDailyData} tempRange={{ min: 50, max: 80 }} />
+          <DailyForecast
+            days={weatherData.daily}
+            tempRange={{
+              min: Math.min(...weatherData.daily.map((d: any) => d.low)),
+              max: Math.max(...weatherData.daily.map((d: any) => d.high))
+            }}
+          />
         </View>
 
         {/* Weather Details Grid */}
         <View style={styles.lastSection}>
-          <WeatherDetailsGrid details={mockWeatherDetails} />
+          <WeatherDetailsGrid details={weatherData.details} />
         </View>
       </ScrollView>
     </View>
@@ -205,6 +198,36 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 16,
+    marginTop: 16,
+    fontWeight: '500',
+  },
+  errorText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '500',
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  retryText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
